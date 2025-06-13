@@ -5,6 +5,8 @@ from qtpy.QtCore import QPointF, QRect, QRectF, QSizeF
 from qtpy.QtGui import QFont, QFontMetrics, QTransform
 from qtpy.QtWidgets import QSizePolicy
 
+from qtpynodeeditor.style import LayoutDirection
+
 from .enums import NodeValidationState, PortType
 from .port import Port
 
@@ -233,6 +235,43 @@ class NodeGeometry:
         self._width = width
         self._height = height
 
+    def _calc_horizontal_port_position(
+        self,
+        port_type: PortType,
+        index: int
+    ) -> typing.Tuple[float, float]:
+        
+        step = self._entry_height + self._spacing
+        total_height = float(self.caption_height) + step * index
+        # TODO_UPSTREAM: why?
+        total_height += step / 2.0
+
+        if port_type == PortType.output:
+            x = self._width + self._style.connection_point_diameter
+        elif port_type == PortType.input:
+            x = -float(self._style.connection_point_diameter)
+        else:
+            raise ValueError(port_type)
+        return x, total_height
+
+    def _calc_vertical_port_position(
+        self,
+        port_type: PortType,
+        index: int
+    ) -> typing.Tuple[float, float]:
+        
+        step = self._entry_height + self._spacing
+        # TODO: see if we can set up centered nodes
+        total_width = step * index
+        total_width += step / 2.0
+        if port_type == PortType.output:
+            y = self._height + self._style.connection_point_diameter
+        elif port_type == PortType.input:
+            y = -float(self._style.connection_point_diameter)
+        else:
+            raise ValueError(port_type)
+        return total_width, y
+
     def port_scene_position(self, port_type: PortType, index: int,
                             t: QTransform = None) -> QPointF:
         """
@@ -251,19 +290,12 @@ class NodeGeometry:
         if t is None:
             t = QTransform()
 
-        step = self._entry_height + self._spacing
-        total_height = float(self.caption_height) + step * index
-        # TODO_UPSTREAM: why?
-        total_height += step / 2.0
+        if self._node.style.layout_direction == LayoutDirection.HORIZONTAL:
+            x, y = self._calc_horizontal_port_position(port_type, index)
+        elif self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            x, y = self._calc_vertical_port_position(port_type, index)
 
-        if port_type == PortType.output:
-            x = self._width + self._style.connection_point_diameter
-            result = QPointF(x, total_height)
-        elif port_type == PortType.input:
-            x = -float(self._style.connection_point_diameter)
-            result = QPointF(x, total_height)
-        else:
-            raise ValueError(port_type)
+        result = QPointF(x, y)
 
         return t.map(result)
 

@@ -1,3 +1,4 @@
+from enum import StrEnum, auto
 import json
 import logging
 import random
@@ -19,6 +20,19 @@ def _get_qcolor(style_dict, key):
     logger.debug('Loaded color %s = %s -> %d %d %d %d', key, name_or_list,
                  *color.getRgb())
     return color
+
+
+class LayoutDirection(StrEnum):
+    HORIZONTAL = auto()
+    VERTICAL = auto()
+
+    @classmethod
+    def _missing_(cls, value: str):
+        value = value.lower()
+        for member in cls:
+            if member.value == value:
+                return member
+        return None
 
 
 class Style:
@@ -48,7 +62,9 @@ class Style:
 
             "ConnectionPointDiameter": 8.0,
 
-            "Opacity": 0.8
+            "Opacity": 0.8,
+
+            "LayoutDirection": "HORIZONTAL"
         },
         "ConnectionStyle": {
             "ConstructionColor": "gray",
@@ -200,6 +216,8 @@ class NodeStyle(Style):
         self.connection_point_diameter = 5.0
         self.opacity = 1.0
 
+        self.layout_direction = LayoutDirection.HORIZONTAL
+
         super().__init__(json_style=json_style)
 
     def load_from_json(self, json_style: str):
@@ -237,6 +255,7 @@ class NodeStyle(Style):
         self.connection_point_diameter = float(
             style['ConnectionPointDiameter'])
         self.opacity = float(style['Opacity'])
+        self.layout_direction = LayoutDirection[style["LayoutDirection"]]
 
 
 class StyleCollection:
