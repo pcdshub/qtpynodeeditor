@@ -213,7 +213,7 @@ class FlowSceneModel:
         ----------
         conn : Connection
         """
-        input_node, output_node = conn.nodes
+        output_node, input_node = conn.nodes
         assert input_node is not None
         assert output_node is not None
         output_node.model.output_connection_created(conn)
@@ -227,7 +227,7 @@ class FlowSceneModel:
         ----------
         conn : Connection
         """
-        input_node, output_node = conn.nodes
+        output_node, input_node = conn.nodes
         assert input_node is not None
         assert output_node is not None
         output_node.model.output_connection_deleted(conn)
@@ -537,7 +537,7 @@ class FlowScene(FlowSceneModel, QGraphicsScene):
         self._connections.append(connection)
 
         if port_a and port_b:
-            in_port, out_port = connection.ports
+            out_port, in_port = connection.ports
             out_port.node.on_data_updated(out_port)
             self.connection_created.emit(connection)
 

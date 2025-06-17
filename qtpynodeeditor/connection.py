@@ -49,7 +49,7 @@ class Connection(QObject, Serializable):
         if in_port is not None:
             if in_port.connections:
                 conn, = in_port.connections
-                existing_in, existing_out = conn.ports
+                existing_out, existing_in = conn.ports
                 if existing_in == in_port and existing_out == out_port:
                     raise exceptions.PortsAlreadyConnectedError(
                         'Specified ports already connected')
@@ -98,7 +98,7 @@ class Connection(QObject, Serializable):
         -------
         value : dict
         """
-        in_port, out_port = self.ports
+        out_port, in_port = self.ports
         if not in_port and not out_port:
             return {}
 
@@ -248,12 +248,12 @@ class Connection(QObject, Serializable):
     @property
     def nodes(self):
         # TODO namedtuple; TODO order
-        return (self.get_node(PortType.input), self.get_node(PortType.output))
+        return (self.get_node(PortType.output), self.get_node(PortType.input))
 
     @property
     def ports(self):
         # TODO namedtuple; TODO order
-        return (self._ports[PortType.input], self._ports[PortType.output])
+        return (self._ports[PortType.output], self._ports[PortType.input])
 
     def get_port_index(self, port_type: PortType) -> int:
         """
@@ -347,7 +347,7 @@ class Connection(QObject, Serializable):
         ----------
         node_data : NodeData
         """
-        in_port, out_port = self.ports
+        out_port, in_port = self.ports
         if not in_port:
             return
 
