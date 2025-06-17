@@ -240,7 +240,7 @@ class NodeGeometry:
         port_type: PortType,
         index: int
     ) -> typing.Tuple[float, float]:
-        
+
         step = self._entry_height + self._spacing
         total_height = float(self.caption_height) + step * index
         # TODO_UPSTREAM: why?
@@ -259,7 +259,7 @@ class NodeGeometry:
         port_type: PortType,
         index: int
     ) -> typing.Tuple[float, float]:
-        
+
         step = self._entry_height + self._spacing
         # TODO: see if we can set up centered nodes
         total_width = step * index

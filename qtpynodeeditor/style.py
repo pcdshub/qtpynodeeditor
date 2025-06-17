@@ -1,7 +1,7 @@
-from enum import StrEnum, auto
 import json
 import logging
 import random
+from enum import StrEnum, auto
 
 from qtpy.QtGui import QColor
 
@@ -255,7 +255,7 @@ class NodeStyle(Style):
         self.connection_point_diameter = float(
             style['ConnectionPointDiameter'])
         self.opacity = float(style['Opacity'])
-        self.layout_direction = LayoutDirection[style["LayoutDirection"]]
+        self.layout_direction = LayoutDirection[style.get("LayoutDirection", "HORIZONTAL")]
 
 
 class StyleCollection:
