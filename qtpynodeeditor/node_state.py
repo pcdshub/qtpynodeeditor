@@ -7,26 +7,29 @@ from .port import Port, PortType
 
 if typing.TYPE_CHECKING:
     from .connection import Connection  # noqa
+    from .node import Node
 
 
 class NodeState:
-    def __init__(self, node):
+    def __init__(self, node: 'Node'):
         '''
         node_state
 
         Parameters
         ----------
-        model : NodeDataModel
+        model : Node
         '''
-        self._ports = {PortType.input: OrderedDict(),
-                       PortType.output: OrderedDict()
-                       }
+        self._ports: typing.Dict[PortType, OrderedDict[int, Port]] = {
+            PortType.input: OrderedDict(),
+            PortType.output: OrderedDict()
+        }
 
-        model = node.model
+        self.node = node
+        # setup initial nodes and ports
         for port_type in self._ports:
-            num_ports = model.num_ports[port_type]
+            num_ports = self.node.model.num_ports[port_type]
             self._ports[port_type] = OrderedDict(
-                (i, Port(node, port_type=port_type, index=i))
+                (i, Port(self.node, port_type=port_type, index=i))
                 for i in range(num_ports)
             )
 
@@ -35,7 +38,51 @@ class NodeState:
         self._reacting_data_type = None
         self._resizing = False
 
+    def _update_ports(self):
+        for port_type in self._ports:
+            num_ports = self.node.model.num_ports[port_type]
+            curr_num_ports = len(self._ports[port_type])
+            if num_ports == curr_num_ports:
+                continue
+
+            if num_ports > curr_num_ports:
+                # simply append ports, do not recreate old ones
+                # (may break incoming connections)
+                for i in range(num_ports):
+                    if i not in self._ports[port_type]:
+                        self._ports[port_type][i] = Port(self.node, port_type=port_type, index=i)
+                continue
+
+            # otherwise we may need to shift existing connections
+            # gather connections for each port, retaining order
+            old_connections: OrderedDict[int, list[Connection]] = OrderedDict()
+            for port_idx, port in self._ports[port_type].items():
+                if len(port.connections) == 0:
+                    continue
+                old_connections[port_idx] = []
+                for conn in port.connections:
+                    old_connections[port_idx].append(conn)
+
+            if len(old_connections) > num_ports - 1:
+                raise RuntimeError(
+                    "Gathered too many ports to reconnect "
+                    f"({len(old_connections)} into {num_ports - 1} ports)"
+                )
+
+            # Create new ports to set up new indexing
+            self._ports[port_type] = OrderedDict(
+                (i, Port(self.node, port_type=port_type, index=i))
+                for i in range(num_ports)
+            )
+
+            # Re-assign connections to their new ports
+            for new_port, connections in zip(self._ports[port_type].values(), old_connections.values()):
+                for old_conn in connections:
+                    old_conn._ports[port_type] = new_port
+                    new_port.add_connection(old_conn)
+
     def __getitem__(self, key):
+        self._update_ports()
         return self._ports[key]
 
     @property
@@ -54,6 +101,7 @@ class NodeState:
     @property
     def output_connections(self):
         """All output connections"""
+        self._update_ports()
         return [
             connection
             for idx, port in self._ports[PortType.output].items()
@@ -63,6 +111,7 @@ class NodeState:
     @property
     def input_connections(self):
         """All input connections"""
+        self._update_ports()
         return [
             connection
             for idx, port in self._ports[PortType.input].items()
@@ -87,6 +136,7 @@ class NodeState:
         -------
         value : list
         """
+        self._update_ports()
         return list(self._ports[port_type][port_index].connections)
 
     def erase_connection(self, port_type: PortType, port_index: int, connection: 'Connection'):
@@ -99,6 +149,7 @@ class NodeState:
         port_index : int
         connection : Connection
         """
+        self._update_ports()
         self._ports[port_type][port_index].remove_connection(connection)
 
     @property
