@@ -80,7 +80,7 @@ class Connection(QObject, Serializable):
         for port_type, port in self.valid_ports.items():
             if port.node.graphics_object is not None:
                 port.node.graphics_object.update()
-            self._ports[port] = None
+            self._ports[port_type] = None
 
         if self._graphics_object is not None:
             self._graphics_object._cleanup()
