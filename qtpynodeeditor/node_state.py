@@ -50,7 +50,9 @@ class NodeState:
                 # (may break incoming connections)
                 for i in range(num_ports):
                     if i not in self._ports[port_type]:
-                        self._ports[port_type][i] = Port(self.node, port_type=port_type, index=i)
+                        self._ports[port_type][i] = Port(self.node,
+                                                         port_type=port_type,
+                                                         index=i)
                 continue
 
             # otherwise we may need to shift existing connections
@@ -63,10 +65,10 @@ class NodeState:
                 for conn in port.connections:
                     old_connections[port_idx].append(conn)
 
-            if len(old_connections) > num_ports - 1:
+            if len(old_connections) > num_ports:
                 raise RuntimeError(
                     "Gathered too many ports to reconnect "
-                    f"({len(old_connections)} into {num_ports - 1} ports)"
+                    f"({len(old_connections)} into {num_ports} ports)"
                 )
 
             # Create new ports to set up new indexing
