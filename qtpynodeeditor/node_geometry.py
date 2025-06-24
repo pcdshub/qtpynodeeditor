@@ -190,7 +190,7 @@ class NodeGeometry:
         return QRectF(0 - addon, 0 - addon,
                       self._width + 2 * addon, self._height + 2 * addon)
 
-    def recalculate_size(self, font: QFont = None):
+    def recalculate_size(self, font: typing.Optional[QFont] = None):
         """
         If font is unspecified,
             Updates size unconditionally
@@ -208,24 +208,34 @@ class NodeGeometry:
             self._font_metrics = font_metrics
             self._bold_font_metrics = bold_font_metrics
 
-        self._entry_height = self._font_metrics.height()
-
         max_num_of_entries = max((self.num_sinks, self.num_sources))
-        step = self._entry_height + self._spacing
-        height = step * max_num_of_entries
-
         widget = self._model.embedded_widget()
-        if widget:
-            height = max((height, widget.height()))
-
-        height += self.caption_height
+        self._entry_height = self._font_metrics.height()
+        port_height = self._entry_height + self._spacing
         self._input_port_width = self.port_width(PortType.input)
         self._output_port_width = self.port_width(PortType.output)
-        width = self._input_port_width + self._output_port_width + 2 * self._spacing
+
+        if self._node.style.layout_direction == LayoutDirection.HORIZONTAL:
+            # height based on number of ports
+            height = port_height * max_num_of_entries
+
+            # width based on input + output port width
+            width = self._input_port_width + self._output_port_width
+            width += 2 * self._spacing
+        elif self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            # some minimum height setting
+            height = port_height * 2
+
+            # width based on the number of ports that exist
+            max_port_width = max(self._input_port_width, self._output_port_width)
+            width = max_port_width * max_num_of_entries + 2 * self._spacing
+
+        if widget:
+            height = max((height, widget.height()))
+        height += self.caption_height
 
         if widget:
             width += widget.width()
-
         width = max((width, self.caption_width))
 
         if self._model.validation_state() != NodeValidationState.valid:
