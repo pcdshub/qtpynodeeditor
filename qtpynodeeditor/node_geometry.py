@@ -269,18 +269,15 @@ class NodeGeometry:
         port_type: PortType,
         index: int
     ) -> typing.Tuple[float, float]:
-
-        step = self._entry_height + self._spacing
-        # TODO: see if we can set up centered nodes
-        total_width = step * index
-        total_width += step / 2.0
+        total_num_ports = self._model.num_ports[port_type]
+        x = self._width / (total_num_ports + 1) * (index + 1)
         if port_type == PortType.output:
             y = self._height + self._style.connection_point_diameter
         elif port_type == PortType.input:
             y = -float(self._style.connection_point_diameter)
         else:
             raise ValueError(port_type)
-        return total_width, y
+        return x, y
 
     def port_scene_position(self, port_type: PortType, index: int,
                             t: QTransform = None) -> QPointF:
