@@ -234,6 +234,9 @@ class NodeGeometry:
             height = max((height, widget.height()))
         height += self.caption_height
 
+        if self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            height += self.caption_height  # Some more padding for portnames
+
         if widget:
             width += widget.width()
         width = max((width, self.caption_width))
