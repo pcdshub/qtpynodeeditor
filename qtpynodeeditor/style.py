@@ -35,6 +35,11 @@ class LayoutDirection(StrEnum):
         return None
 
 
+class SplineType(StrEnum):
+    CUBIC = auto()
+    LINEAR = auto()
+
+
 class Style:
     default_style = {
         "FlowViewStyle": {
@@ -75,7 +80,8 @@ class Style:
             "LineWidth": 3.0,
             "ConstructionLineWidth": 2.0,
             "PointDiameter": 10.0,
-            "UseDataDefinedColors": False
+            "UseDataDefinedColors": False,
+            "SplineType": "CUBIC"
         }
     }
 
@@ -136,6 +142,7 @@ class ConnectionStyle(Style):
     construction_line_width : float
     point_diameter : float
     use_data_defined_colors : bool
+    spline_type : SplineType
     '''
 
     def __init__(self, json_style=None):
@@ -151,6 +158,7 @@ class ConnectionStyle(Style):
 
         self.use_data_defined_colors = True
 
+        self.spline_type = SplineType.CUBIC
         super().__init__(json_style=json_style)
 
     def load_from_json(self, json_style: str):
@@ -173,6 +181,8 @@ class ConnectionStyle(Style):
         self.construction_line_width = float(style['ConstructionLineWidth'])
         self.point_diameter = float(style['PointDiameter'])
         self.use_data_defined_colors = bool(style['UseDataDefinedColors'])
+
+        self.spline_type = SplineType[style.get("SplineType", "CUBIC")]
 
     def get_normal_color(self, type_id: str = None) -> QColor:
         """

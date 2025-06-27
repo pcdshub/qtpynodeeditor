@@ -5,7 +5,7 @@ from qtpy.QtGui import QIcon, QPainter, QPainterPath, QPainterPathStroker, QPen
 
 from .connection_geometry import ConnectionGeometry
 from .enums import PortType
-from .style import ConnectionStyle
+from .style import ConnectionStyle, SplineType
 
 if typing.TYPE_CHECKING:
     from .connection import Connection  # noqa
@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 use_debug_drawing = False
 
 
-def cubic_path(geom):
+def cubic_path(geom: ConnectionGeometry):
     source, sink = geom.source, geom.sink
     c1, c2 = geom.points_c1_c2()
 
@@ -25,7 +25,23 @@ def cubic_path(geom):
     return cubic
 
 
-def debug_drawing(painter, connection):
+def linear_path(geom: ConnectionGeometry):
+    source, sink = geom.source, geom.sink
+    linear = QPainterPath(source)
+
+    linear.lineTo(sink)
+    return linear
+
+
+SPLINE_MAP: typing.Dict[
+    SplineType, typing.Callable[[ConnectionGeometry], QPainterPath]
+] = {
+    SplineType.CUBIC: cubic_path,
+    SplineType.LINEAR: linear_path,
+}
+
+
+def debug_drawing(painter, connection: 'Connection'):
     geom = connection.geometry
     source, sink = geom.source, geom.sink
     c1, c2 = geom.points_c1_c2()
@@ -41,13 +57,18 @@ def debug_drawing(painter, connection):
 
     painter.setBrush(Qt.NoBrush)
 
-    painter.drawPath(cubic_path(geom))
+    path_fn = SPLINE_MAP[connection.style.connection.spline_type]
+    painter.drawPath(path_fn(geom))
     painter.setPen(Qt.yellow)
 
     painter.drawRect(geom.bounding_rect)
 
 
-def draw_sketch_line(painter, connection, style):
+def draw_sketch_line(
+    painter: QPainter,
+    connection: 'Connection',
+    style: ConnectionStyle
+):
     if not connection.requires_port:
         return
 
@@ -61,12 +82,16 @@ def draw_sketch_line(painter, connection, style):
 
     geom = connection.geometry
 
-    cubic = cubic_path(geom)
-    # cubic spline
-    painter.drawPath(cubic)
+    path_fn = SPLINE_MAP[style.spline_type]
+    path = path_fn(geom)
+    painter.drawPath(path)
 
 
-def draw_hovered_or_selected(painter, connection, style):
+def draw_hovered_or_selected(
+    painter: QPainter,
+    connection: 'Connection',
+    style: ConnectionStyle
+):
     geom = connection.geometry
     hovered = geom.hovered
 
@@ -86,8 +111,9 @@ def draw_hovered_or_selected(painter, connection, style):
         painter.setBrush(Qt.NoBrush)
 
         # cubic spline
-        cubic = cubic_path(geom)
-        painter.drawPath(cubic)
+        path_fn = SPLINE_MAP[style.spline_type]
+        path = path_fn(geom)
+        painter.drawPath(path)
 
 
 def draw_normal_line(painter, connection, style):
@@ -122,7 +148,8 @@ def draw_normal_line(painter, connection, style):
     graphics_object = connection.graphics_object
     selected = graphics_object.isSelected()
 
-    cubic = cubic_path(geom)
+    path_fn = SPLINE_MAP[style.spline_type]
+    path = path_fn(geom)
     if gradient_color:
         painter.setBrush(Qt.NoBrush)
 
@@ -147,12 +174,12 @@ def draw_normal_line(painter, connection, style):
                 p.setColor(c)
                 painter.setPen(p)
 
-            painter.drawLine(cubic.pointAtPercent(ratio_prev), cubic.pointAtPercent(ratio))
+            painter.drawLine(path.pointAtPercent(ratio_prev), path.pointAtPercent(ratio))
 
         icon = QIcon(":convert.png")
 
         pixmap = icon.pixmap(QSize(22, 22))
-        painter.drawPixmap(cubic.pointAtPercent(0.50) - QPointF(pixmap.width() / 2, pixmap.height() / 2), pixmap)
+        painter.drawPixmap(path.pointAtPercent(0.50) - QPointF(pixmap.width() / 2, pixmap.height() / 2), pixmap)
     else:
         p.setColor(normal_color_out)
 
@@ -162,7 +189,7 @@ def draw_normal_line(painter, connection, style):
         painter.setPen(p)
         painter.setBrush(Qt.NoBrush)
 
-        painter.drawPath(cubic)
+        painter.drawPath(path)
 
 
 class ConnectionPainter:
@@ -208,14 +235,15 @@ class ConnectionPainter:
         -------
         value : QPainterPath
         """
-        cubic = cubic_path(geom)
+        path_fn = SPLINE_MAP[geom._spline_type]
+        path = path_fn(geom)
         source = geom.source
         result = QPainterPath(source)
         segments = 20
 
         for i in range(segments):
             ratio = float(i + 1) / segments
-            result.lineTo(cubic.pointAtPercent(ratio))
+            result.lineTo(path.pointAtPercent(ratio))
 
         stroker = QPainterPathStroker()
         stroker.setWidth(10.0)

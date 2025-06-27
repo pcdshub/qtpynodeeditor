@@ -12,6 +12,7 @@ class ConnectionGeometry:
         self._line_width = 3.0
         self._hovered = False
         self._point_diameter = style.connection.point_diameter
+        self._spline_type = style.connection.spline_type
 
     def get_end_point(self, port_type: PortType) -> QPointF:
         """
