@@ -55,6 +55,7 @@ class NodePainter:
             return
 
         geom.recalculate_size(painter.font())
+        node.graphics_object.move_connections()
 
         model = node.model
         NodePainter.draw_node_rect(painter, geom, model, graphics_object,
@@ -131,13 +132,13 @@ class NodePainter:
         """
         if not model.caption_visible:
             return
-        name = model.caption
+        name = model.caption or ""
         f = painter.font()
         f.setBold(True)
         metrics = QFontMetrics(f)
         rect = metrics.boundingRect(name)
         if node_style.layout_direction is LayoutDirection.VERTICAL:
-            extra_vert_pad = rect.height() * 2
+            extra_vert_pad = rect.height() * 2  # leave space for port names
         else:
             extra_vert_pad = 0
         position = QPointF((geom.width - rect.width()) / 2.0,
