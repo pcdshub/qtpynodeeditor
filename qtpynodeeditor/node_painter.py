@@ -9,7 +9,7 @@ from .node_data import NodeDataModel
 from .node_geometry import NodeGeometry
 from .node_graphics_object import NodeGraphicsObject
 from .node_state import NodeState
-from .style import ConnectionStyle, NodeStyle
+from .style import ConnectionStyle, LayoutDirection, NodeStyle
 
 if typing.TYPE_CHECKING:
     from .connection import Connection  # noqa
@@ -55,6 +55,7 @@ class NodePainter:
             return
 
         geom.recalculate_size(painter.font())
+        node.graphics_object.move_connections()
 
         model = node.model
         NodePainter.draw_node_rect(painter, geom, model, graphics_object,
@@ -131,13 +132,17 @@ class NodePainter:
         """
         if not model.caption_visible:
             return
-        name = model.caption
+        name = model.caption or ""
         f = painter.font()
         f.setBold(True)
         metrics = QFontMetrics(f)
         rect = metrics.boundingRect(name)
+        if node_style.layout_direction is LayoutDirection.VERTICAL:
+            extra_vert_pad = rect.height() * 2  # leave space for port names
+        else:
+            extra_vert_pad = 0
         position = QPointF((geom.width - rect.width()) / 2.0,
-                           (geom.spacing + geom.entry_height) / 3.0)
+                           (geom.spacing + geom.entry_height + extra_vert_pad) / 3.0)
         painter.setFont(f)
         painter.setPen(node_style.font_color)
         painter.drawText(position, name)
@@ -170,12 +175,21 @@ class NodePainter:
 
             display_text = port.display_text
             rect = metrics.boundingRect(display_text)
-            scene_pos.setY(scene_pos.y() + rect.height() / 4.0)
-            if port.port_type == PortType.input:
-                scene_pos.setX(5.0)
-            elif port.port_type == PortType.output:
-                scene_pos.setX(geom.width - 5.0 - rect.width())
+            if node_style.layout_direction == LayoutDirection.HORIZONTAL:
+                scene_pos.setY(scene_pos.y() + rect.height() / 4.0)
+            elif node_style.layout_direction == LayoutDirection.VERTICAL:
+                if port.port_type == PortType.input:
+                    scene_pos.setY(scene_pos.y() + rect.height())
+                elif port.port_type == PortType.output:
+                    scene_pos.setY(scene_pos.y() - rect.height())
 
+            if node_style.layout_direction == LayoutDirection.HORIZONTAL:
+                if port.port_type == PortType.input:
+                    scene_pos.setX(5.0)
+                elif port.port_type == PortType.output:
+                    scene_pos.setX(geom.width - 5.0 - rect.width())
+            elif node_style.layout_direction is LayoutDirection.VERTICAL:
+                scene_pos.setX(scene_pos.x() - rect.width() / 2)
             painter.drawText(scene_pos, display_text)
 
     @staticmethod

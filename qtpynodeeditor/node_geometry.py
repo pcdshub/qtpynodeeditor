@@ -5,6 +5,8 @@ from qtpy.QtCore import QPointF, QRect, QRectF, QSizeF
 from qtpy.QtGui import QFont, QFontMetrics, QTransform
 from qtpy.QtWidgets import QSizePolicy
 
+from qtpynodeeditor.style import LayoutDirection
+
 from .enums import NodeValidationState, PortType
 from .port import Port
 
@@ -188,7 +190,7 @@ class NodeGeometry:
         return QRectF(0 - addon, 0 - addon,
                       self._width + 2 * addon, self._height + 2 * addon)
 
-    def recalculate_size(self, font: QFont = None):
+    def recalculate_size(self, font: typing.Optional[QFont] = None):
         """
         If font is unspecified,
             Updates size unconditionally
@@ -206,24 +208,37 @@ class NodeGeometry:
             self._font_metrics = font_metrics
             self._bold_font_metrics = bold_font_metrics
 
-        self._entry_height = self._font_metrics.height()
-
         max_num_of_entries = max((self.num_sinks, self.num_sources))
-        step = self._entry_height + self._spacing
-        height = step * max_num_of_entries
-
         widget = self._model.embedded_widget()
-        if widget:
-            height = max((height, widget.height()))
-
-        height += self.caption_height
+        self._entry_height = self._font_metrics.height()
+        port_height = self._entry_height + self._spacing
         self._input_port_width = self.port_width(PortType.input)
         self._output_port_width = self.port_width(PortType.output)
-        width = self._input_port_width + self._output_port_width + 2 * self._spacing
+
+        if self._node.style.layout_direction == LayoutDirection.HORIZONTAL:
+            # height based on number of ports
+            height = port_height * max_num_of_entries
+
+            # width based on input + output port width
+            width = self._input_port_width + self._output_port_width
+            width += 2 * self._spacing
+        elif self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            # some minimum height setting
+            height = port_height * 2
+
+            # width based on the number of ports that exist
+            max_port_width = max(self._input_port_width, self._output_port_width)
+            width = max_port_width * max_num_of_entries + 2 * self._spacing
+
+        if widget:
+            height = max((height, widget.height()))
+        height += self.caption_height
+
+        if self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            height += self.caption_height  # Some more padding for portnames
 
         if widget:
             width += widget.width()
-
         width = max((width, self.caption_width))
 
         if self._model.validation_state() != NodeValidationState.valid:
@@ -232,6 +247,40 @@ class NodeGeometry:
 
         self._width = width
         self._height = height
+
+    def _calc_horizontal_port_position(
+        self,
+        port_type: PortType,
+        index: int
+    ) -> typing.Tuple[float, float]:
+
+        step = self._entry_height + self._spacing
+        total_height = float(self.caption_height) + step * index
+        # TODO_UPSTREAM: why?
+        total_height += step / 2.0
+
+        if port_type == PortType.output:
+            x = self._width + self._style.connection_point_diameter
+        elif port_type == PortType.input:
+            x = -float(self._style.connection_point_diameter)
+        else:
+            raise ValueError(port_type)
+        return x, total_height
+
+    def _calc_vertical_port_position(
+        self,
+        port_type: PortType,
+        index: int
+    ) -> typing.Tuple[float, float]:
+        total_num_ports = self._model.num_ports[port_type]
+        x = self._width / (total_num_ports + 1) * (index + 1)
+        if port_type == PortType.output:
+            y = self._height + self._style.connection_point_diameter
+        elif port_type == PortType.input:
+            y = -float(self._style.connection_point_diameter)
+        else:
+            raise ValueError(port_type)
+        return x, y
 
     def port_scene_position(self, port_type: PortType, index: int,
                             t: QTransform = None) -> QPointF:
@@ -251,19 +300,12 @@ class NodeGeometry:
         if t is None:
             t = QTransform()
 
-        step = self._entry_height + self._spacing
-        total_height = float(self.caption_height) + step * index
-        # TODO_UPSTREAM: why?
-        total_height += step / 2.0
+        if self._node.style.layout_direction == LayoutDirection.HORIZONTAL:
+            x, y = self._calc_horizontal_port_position(port_type, index)
+        elif self._node.style.layout_direction == LayoutDirection.VERTICAL:
+            x, y = self._calc_vertical_port_position(port_type, index)
 
-        if port_type == PortType.output:
-            x = self._width + self._style.connection_point_diameter
-            result = QPointF(x, total_height)
-        elif port_type == PortType.input:
-            x = -float(self._style.connection_point_diameter)
-            result = QPointF(x, total_height)
-        else:
-            raise ValueError(port_type)
+        result = QPointF(x, y)
 
         return t.map(result)
 

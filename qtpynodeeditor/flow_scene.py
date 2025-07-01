@@ -213,7 +213,7 @@ class FlowSceneModel:
         ----------
         conn : Connection
         """
-        input_node, output_node = conn.nodes
+        output_node, input_node = conn.nodes
         assert input_node is not None
         assert output_node is not None
         output_node.model.output_connection_created(conn)
@@ -227,7 +227,7 @@ class FlowSceneModel:
         ----------
         conn : Connection
         """
-        input_node, output_node = conn.nodes
+        output_node, input_node = conn.nodes
         assert input_node is not None
         assert output_node is not None
         output_node.model.output_connection_deleted(conn)
@@ -537,7 +537,7 @@ class FlowScene(FlowSceneModel, QGraphicsScene):
         self._connections.append(connection)
 
         if port_a and port_b:
-            in_port, out_port = connection.ports
+            out_port, in_port = connection.ports
             out_port.node.on_data_updated(out_port)
             self.connection_created.emit(connection)
 
@@ -666,14 +666,31 @@ class FlowScene(FlowSceneModel, QGraphicsScene):
             for name in ('bipartite', 'circular', 'kamada_kawai', 'random',
                          'shell', 'spring', 'spectral')
         }
+        layouts["pygraphviz"] = networkx.nx_agraph.pygraphviz_layout
 
         try:
             layout_func = layouts[layout]
         except KeyError:
             raise ValueError(f'Unknown layout type {layout}') from None
 
-        layout = layout_func(dig, **kwargs)
-        for node, pos in layout.items():
+        # pygraphviz layouts seem to take node labels into account for spacing
+        # (in our case this is the the long repr)
+        if layout == "pygraphviz":
+            int_to_node = {i: node for i, node in enumerate(dig.nodes)}
+            node_to_int = {node: i for i, node in int_to_node.items()}
+            dig = networkx.relabel_nodes(dig, node_to_int)
+
+        layout_data = layout_func(dig, **kwargs)
+        # some layouts are not unit vector scaled
+        layout_data = networkx.rescale_layout_dict(layout_data)
+
+        if layout == "pygraphviz":
+            # undo int mapping, flip y orientation
+            dig = networkx.relabel_nodes(dig, int_to_node)
+            layout_data = {int_to_node[node_label]: (pos_x, -pos_y)
+                           for node_label, (pos_x, pos_y) in layout_data.items()}
+
+        for node, pos in layout_data.items():
             pos_x, pos_y = pos
             node.position = (pos_x * scale, pos_y * scale)
 

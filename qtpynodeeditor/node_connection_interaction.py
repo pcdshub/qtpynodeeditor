@@ -170,7 +170,7 @@ class NodeConnectionInteraction:
         self._node.graphics_object.move_connections()
 
         # 5) Poke model to intiate data transfer
-        _, out_port = self._connection.ports
+        out_port, in_port = self._connection.ports
         if out_port:
             out_port.node.on_data_updated(out_port)
 
