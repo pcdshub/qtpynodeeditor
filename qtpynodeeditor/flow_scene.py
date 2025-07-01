@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import os
 
 from qtpy.QtCore import QDir, QPoint, QPointF, Qt, Signal
@@ -18,6 +19,8 @@ from .node_data import NodeDataModel, NodeDataType
 from .node_graphics_object import NodeGraphicsObject
 from .port import Port, PortType
 from .type_converter import TypeConverter
+
+logger = logging.getLogger(__name__)
 
 
 def locate_node_at(scene_point, scene, view_transform):
@@ -202,8 +205,11 @@ class FlowSceneModel:
         ----------
         conn : Connection
         """
-        conn.connection_made_incomplete.connect(
-            self._connection_made_incomplete, Qt.UniqueConnection)
+        try:
+            conn.connection_made_incomplete.connect(
+                self._connection_made_incomplete, Qt.UniqueConnection)
+        except TypeError:
+            logger.debug("Duplicate connection attempted, ignoring...")
 
     def _send_connection_created_to_nodes(self, conn: Connection):
         """
