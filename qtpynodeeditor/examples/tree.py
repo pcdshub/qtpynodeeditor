@@ -5,7 +5,7 @@ from qtpy.QtWidgets import QApplication
 import qtpynodeeditor as nodeeditor
 from qtpynodeeditor import (Connection, NodeData, NodeDataModel, NodeDataType,
                             NodeValidationState, Port, PortType)
-from qtpynodeeditor.style import LayoutDirection, StyleCollection
+from qtpynodeeditor.style import LayoutDirection, SplineType, StyleCollection
 
 
 class BlankNodeData(NodeData):
@@ -184,6 +184,7 @@ def main(app):
 
     my_style = StyleCollection()
     my_style.node.layout_direction = LayoutDirection.VERTICAL
+    my_style.connection.spline_type = SplineType.LINEAR
 
     models = (LeafNodeModel, MultiChildNodeModel, RootNodeModel,)
 
