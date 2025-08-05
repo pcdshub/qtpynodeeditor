@@ -1,7 +1,7 @@
 import json
 import logging
 import random
-from enum import StrEnum, auto
+from enum import Enum
 
 from qtpy.QtGui import QColor
 
@@ -22,9 +22,9 @@ def _get_qcolor(style_dict, key):
     return color
 
 
-class LayoutDirection(StrEnum):
-    HORIZONTAL = auto()
-    VERTICAL = auto()
+class LayoutDirection(Enum):
+    HORIZONTAL = "HORIZONTAL"
+    VERTICAL = "VERTICAL"
 
     @classmethod
     def _missing_(cls, value: str):
@@ -35,9 +35,9 @@ class LayoutDirection(StrEnum):
         return None
 
 
-class SplineType(StrEnum):
-    CUBIC = auto()
-    LINEAR = auto()
+class SplineType(Enum):
+    CUBIC = "CUBIC"
+    LINEAR = "LINEAR"
 
 
 class Style:
