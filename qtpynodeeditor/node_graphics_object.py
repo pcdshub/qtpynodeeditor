@@ -91,6 +91,9 @@ class NodeGraphicsObject(QGraphicsObject):
         Visits all attached connections and corrects their corresponding end points.
         """
         for conn in self._node.state.all_connections:
+            if conn.graphics_object is None:
+                # CI might not have this graphics object
+                continue
             conn.graphics_object.move()
 
     def lock(self, locked: bool):
