@@ -618,13 +618,13 @@ class FlowScene(FlowSceneModel, QGraphicsScene):
         # create_connection(...)
         return connection
 
-    def create_node(self, data_model: NodeDataModel) -> Node:
+    def create_node(self, data_model: type[NodeDataModel]) -> Node:
         """
         Create a node in the scene
 
         Parameters
         ----------
-        data_model : NodeDataModel
+        data_model : a subclass of NodeDataModel
 
         Returns
         -------
